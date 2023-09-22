@@ -23,6 +23,8 @@ struct Cli {
 enum Command {
     Send {
         #[arg(long, short)]
+        ip: String,
+        #[arg(long, short)]
         port: u16,
         #[arg(long, short)]
         file: PathBuf,
@@ -30,18 +32,20 @@ enum Command {
 
     Listen {
         #[arg(long, short)]
-        port: u16,
+        ip: String,
         #[arg(long, short)]
-        file: PathBuf,
+        port: u16,
+        // #[arg(long, short)]
+        // file: PathBuf,
     },
 }
 
-fn main() {
+fn main() -> Result<()> {
     let cli = Cli::parse();
     match cli.command {
-        Command::Send { port, file } => {
+        Command::Send { ip, port, file } => {
             let mut stream =
-                TcpStream::connect("127.0.0.1:8080").expect("Failed to connect to server");
+                TcpStream::connect(format!("{ip}:{port}")).expect("Failed to connect to server");
 
             let filename = file
                 .file_name()
@@ -68,10 +72,10 @@ fn main() {
                 }
             }
         }
-        Command::Listen { port, file } => {
-            let listener = TcpListener::bind("0.0.0.0:8080").expect("Failed to bind to address");
+        Command::Listen { ip, port } => {
+            let listener = TcpListener::bind(format!("{ip}:{port}")).expect("Failed to bind to address");
 
-            println!("Server listening on 0.0.0.0:8080...");
+            println!("Server listening ...");
 
             for stream in listener.incoming() {
                 match stream {
@@ -116,4 +120,6 @@ fn main() {
             }
         }
     }
+
+    Ok(())
 }
