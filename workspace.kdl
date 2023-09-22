@@ -54,10 +54,10 @@ layout {
                 args "--command" "cargo build"
             }
             nix start_suspended=true name="run send" {
-                args "--command" "cargo run -- send -p 8080"
+                args "--command" "cargo run -- send -p 8080 -f ./src/main.rs"
             }
             nix start_suspended=true name="run listen" {
-                args "--command" "cargo run -- listen -p 8080"
+                args "--command" "cargo run -- listen -p 8080 -f ./target/idk"
             }
         }
     }
