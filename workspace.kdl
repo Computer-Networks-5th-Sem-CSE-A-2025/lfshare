@@ -1,6 +1,3 @@
-
-// default_shell "cached-nix-shell"
-
 layout {
     // 'base' swap layout is exactly whatever you define in the actual layout stuff
     // first one takes precidence
@@ -28,55 +25,42 @@ layout {
         }
     }
 
-    pane_template name="nix" {
-        command "cached-nix-shell"
-    }
-
 
     tab name="git / broot" stacked=true {
         pane stacked=true {
-            pane start_suspended=true name="broot" {
-                command "broot"
-            }
             pane start_suspended=true name="gitui" {
                 command "gitui"
+            }
+            pane start_suspended=true name="broot" {
+                command "broot"
             }
         }
     }
     tab name="helix" focus=true {
-        nix name="helix" {
-            args "--command" "hx ."
+        pane name="helix" {
+            command "hx"
+            args "."
         }
     }
     tab name="commands" {
         pane stacked=true {
-            nix start_suspended=true name="dev build" {
-                args "--command" "cargo build"
+            pane start_suspended=true name="dev build" {
+                command "cargo"
+                args "build"
             }
-            nix start_suspended=true name="run send" {
-                args "--command" "cargo run -- send -i 127.0.0.1 -p 8080 -f ./src/main.rs"
+            pane start_suspended=true name="run send" {
+                command "cargo"
+                args "run" "--" "send" "-i" "127.0.0.1" "-p" "8080" "-f" "./src/main.rs"
             }
-            nix start_suspended=true name="run listen" {
-                args "--command" "cargo run -- listen -i 127.0.0.1 -p 8080"
+            pane start_suspended=true name="run listen" {
+                command "cargo"
+                args "run" "--" "listen" "-i" "127.0.0.1" "-p" "8080"
             }
         }
     }
     tab name="shell"{
         pane stacked=true {
-            nix name="nix-shell"
-            pane name="zsh"
+            pane
         }
     }
-    // tab name="logs" cwd="./target" {
-    //     pane stacked=true {
-    //         pane start_suspended=true name="logs" {
-    //             command "nvim"
-    //             args "log.log"
-    //         }
-    //         pane start_suspended=true name="prev logs" {
-    //             command "nvim"
-    //             args "prev.log"
-    //         }
-    //     }
-    // }
 }
