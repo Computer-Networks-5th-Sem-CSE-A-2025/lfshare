@@ -1,15 +1,13 @@
 use std::fs::File;
 use std::io::{Read, Write};
-use std::net::{TcpListener, TcpStream, SocketAddr, ToSocketAddrs};
+use std::net::{TcpListener, TcpStream, ToSocketAddrs};
 use std::thread;
 use std::{
-    collections::HashSet,
     fs,
-    ops::Deref,
     path::{Path, PathBuf},
 };
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::Result;
 use clap::{Parser, Subcommand};
 use serde::{Deserialize, Serialize};
 
