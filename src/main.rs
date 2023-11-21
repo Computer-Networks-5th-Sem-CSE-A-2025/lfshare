@@ -10,7 +10,7 @@ use std::{
 
 use anyhow::{anyhow, Context, Result};
 use clap::{Parser, Subcommand};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -38,83 +38,71 @@ enum Command {
         // #[arg(long, short)]
         // file: PathBuf,
     },
+
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+enum Message {
+    File { file_name: PathBuf, data: String },
+    Quit,
 }
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
     match cli.command {
         Command::Send { ip, port, file } => {
-            let mut stream =
-                TcpStream::connect(format!("{ip}:{port}")).expect("Failed to connect to server");
-
             let filename = file
                 .file_name()
                 .expect("Failed to extract filename")
                 .to_string_lossy()
                 .into_owned();
-
-            // Send the filename to the server
-            stream.write_all(filename.as_bytes()).expect("Failed to send filename");
-
             let mut file = File::open(file).expect("Failed to open file");
+            let mut data = String::new();
+            file.read_to_string(&mut data)?;
 
-            let mut buffer = [0; 512];
-            loop {
-                match file.read(&mut buffer) {
-                    Ok(0) => break, // End of file
-                    Ok(n) => {
-                        stream.write_all(&buffer[..n]).expect("Failed to send data");
-                    }
-                    Err(e) => {
-                        println!("Failed to read data from file: {:?}", e);
-                        break;
-                    }
-                }
+            let message1 = Message::File {
+                file_name: filename.into(),
+                data,
+            };
+            let message2 = Message::Quit;
+            let messages = vec![message1, message2];
+
+            for message in messages.iter() {
+                let mut stream = TcpStream::connect(format!("{ip}:{port}"))
+                    .expect("Failed to connect to server");
+
+                let json = serde_json::to_string(message)?;
+
+                stream
+                    .write_all(json.as_bytes())
+                    .expect("Failed to send data");
             }
         }
         Command::Listen { ip, port } => {
-            let listener = TcpListener::bind(format!("{ip}:{port}")).expect("Failed to bind to address");
+            let listener =
+                TcpListener::bind(format!("{ip}:{port}")).expect("Failed to bind to address");
 
             println!("Server listening ...");
 
             for stream in listener.incoming() {
-                match stream {
-                    Ok(mut stream) => {
-                        println!("Accepted connection from: {:?}", stream.peer_addr());
+                let mut stream = stream?;
+                println!("Accepted connection from: {:?}", stream.peer_addr());
+                let mut message = String::new();
+                stream.read_to_string(&mut message)?;
+                let message: Message = serde_json::from_str(&message)?;
 
-                        let mut buffer = [0; 512];
-                        match stream.read(&mut buffer) {
-                            Ok(bytes_read) => {
-                                let filename = String::from_utf8_lossy(&buffer[..bytes_read]);
-                                let _ = fs::create_dir("./received_files");
-                                let file_path = Path::new("./received_files").join(filename.trim());
-                                dbg!(&file_path);
+                match &message {
+                    Message::File { file_name, data } => {
+                        let _ = fs::create_dir("./received_files");
+                        let file_path = Path::new("./received_files").join(file_name);
+                        println!("writing file {file_path:?}");
 
-                                let mut file = File::create(&file_path).expect("Failed to create file");
-
-                                // Receive and write the file contents
-                                loop {
-                                    match stream.read(&mut buffer) {
-                                        Ok(0) => break, // End of file
-                                        Ok(n) => {
-                                            file.write_all(&buffer[..n]).expect("Failed to write data");
-                                        }
-                                        Err(e) => {
-                                            println!("Failed to read data: {:?}", e);
-                                            break;
-                                        }
-                                    }
-                                }
-
-                                println!("Received file: {:?}", file_path);
-                            }
-                            Err(e) => {
-                                println!("Failed to read data: {:?}", e);
-                            }
-                        }
+                        let mut file = File::create(&file_path).expect("Failed to create file");
+                        file.write_all(data.as_bytes())?;
                     }
-                    Err(e) => {
-                        println!("Failed to establish connection: {:?}", e);
+                    Message::Quit => break,
+                    Message::Hello => {
+                        println!("Received Hello message.");
                     }
                 }
             }
