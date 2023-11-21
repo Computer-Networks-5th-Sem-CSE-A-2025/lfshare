@@ -2,10 +2,7 @@ use std::fs::File;
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream, ToSocketAddrs};
 use std::thread;
-use std::{
-    fs,
-    path::{Path, PathBuf},
-};
+use std::{fs, path::PathBuf};
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
@@ -61,15 +58,17 @@ enum Message {
 fn main() -> Result<()> {
     let cli = Cli::parse();
     match cli.command {
-        Command::Send { ip, port, file, dest_path } => {
+        Command::Send {
+            ip,
+            port,
+            file,
+            dest_path,
+        } => {
             let mut file = File::open(file).expect("Failed to open file");
             let mut data = String::new();
             file.read_to_string(&mut data)?;
 
-            let message1 = Message::File {
-                dest_path,
-                data,
-            };
+            let message1 = Message::File { dest_path, data };
             let messages = vec![message1];
 
             for message in messages.iter() {
@@ -85,7 +84,7 @@ fn main() -> Result<()> {
         }
         Command::AskQuit { ip, port } => {
             let message1 = Message::Quit;
-            
+
             let messages = vec![message1];
 
             for message in messages.iter() {
