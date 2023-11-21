@@ -1,6 +1,7 @@
 use std::fs::File;
 use std::io::{Read, Write};
-use std::net::{TcpListener, TcpStream};
+use std::net::{TcpListener, TcpStream, SocketAddr, ToSocketAddrs};
+use std::thread;
 use std::{
     collections::HashSet,
     fs,
@@ -39,10 +40,15 @@ enum Command {
         // file: PathBuf,
     },
 
+    Scan {
+        #[arg(long, short)]
+        port: u16,
+    },
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 enum Message {
+    Hello,
     File { file_name: PathBuf, data: String },
     Quit,
 }
@@ -106,6 +112,44 @@ fn main() -> Result<()> {
                     }
                 }
             }
+        }
+        Command::Scan { port: target_port } => {
+            let ip = local_ip_address::local_ip()?;
+            let ip = ip.to_string();
+            let network_addr = &ip[0..ip.len() - ip.chars().rev().position(|c| c == '.').unwrap()];
+
+            let message = serde_json::to_string(&Message::Hello)?;
+
+            let mut handles = Vec::new();
+            for i in 1..254 {
+                let target_ip = format!("{}{}", network_addr, i);
+                let target_addr = format!("{}:{}", target_ip, target_port);
+
+                let message = message.clone();
+
+                let handle = thread::spawn(move || {
+                    // println!("trying to connect to {target_addr}");
+                    match TcpStream::connect_timeout(
+                        &target_addr.to_socket_addrs().unwrap().next().unwrap(),
+                        std::time::Duration::from_secs_f32(1.0),
+                    ) {
+                        Ok(mut stream) => {
+                            println!("{target_addr} is online :)");
+                            stream
+                                .write_all(message.as_bytes())
+                                .expect("Failed to send data");
+                        }
+                        Err(_) => {
+                            // println!("could not connect: {target_addr}")
+                            // Connection failed, no device at this address
+                        }
+                    }
+                });
+
+                handles.push(handle);
+            }
+
+            handles.into_iter().try_for_each(|h| h.join()).unwrap();
         }
     }
 
