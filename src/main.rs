@@ -27,6 +27,8 @@ enum Command {
         port: u16,
         #[arg(long, short)]
         file: PathBuf,
+        #[arg(long, short)]
+        dest_path: PathBuf,
     },
 
     Listen {
@@ -34,8 +36,13 @@ enum Command {
         ip: String,
         #[arg(long, short)]
         port: u16,
-        // #[arg(long, short)]
-        // file: PathBuf,
+    },
+
+    AskQuit {
+        #[arg(long, short)]
+        ip: String,
+        #[arg(long, short)]
+        port: u16,
     },
 
     Scan {
@@ -47,29 +54,39 @@ enum Command {
 #[derive(Deserialize, Serialize, Debug, Clone)]
 enum Message {
     Hello,
-    File { file_name: PathBuf, data: String },
+    File { dest_path: PathBuf, data: String },
     Quit,
 }
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
     match cli.command {
-        Command::Send { ip, port, file } => {
-            let filename = file
-                .file_name()
-                .expect("Failed to extract filename")
-                .to_string_lossy()
-                .into_owned();
+        Command::Send { ip, port, file, dest_path } => {
             let mut file = File::open(file).expect("Failed to open file");
             let mut data = String::new();
             file.read_to_string(&mut data)?;
 
             let message1 = Message::File {
-                file_name: filename.into(),
+                dest_path,
                 data,
             };
-            let message2 = Message::Quit;
-            let messages = vec![message1, message2];
+            let messages = vec![message1];
+
+            for message in messages.iter() {
+                let mut stream = TcpStream::connect(format!("{ip}:{port}"))
+                    .expect("Failed to connect to server");
+
+                let json = serde_json::to_string(message)?;
+
+                stream
+                    .write_all(json.as_bytes())
+                    .expect("Failed to send data");
+            }
+        }
+        Command::AskQuit { ip, port } => {
+            let message1 = Message::Quit;
+            
+            let messages = vec![message1];
 
             for message in messages.iter() {
                 let mut stream = TcpStream::connect(format!("{ip}:{port}"))
@@ -96,12 +113,12 @@ fn main() -> Result<()> {
                 let message: Message = serde_json::from_str(&message)?;
 
                 match &message {
-                    Message::File { file_name, data } => {
-                        let _ = fs::create_dir("./received_files");
-                        let file_path = Path::new("./received_files").join(file_name);
-                        println!("writing file {file_path:?}");
+                    Message::File { dest_path, data } => {
+                        println!("writing file {dest_path:?}");
 
-                        let mut file = File::create(&file_path).expect("Failed to create file");
+                        fs::create_dir_all(dest_path.parent().unwrap())?;
+
+                        let mut file = File::create(dest_path).expect("Failed to create file");
                         file.write_all(data.as_bytes())?;
                     }
                     Message::Quit => break,
