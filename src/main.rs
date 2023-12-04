@@ -20,7 +20,7 @@ enum Command {
     Send {
         #[arg(long, short)]
         ip: String,
-        #[arg(long, short)]
+        #[arg(long, short, default_value_t = 8080)]
         port: u16,
         #[arg(long, short)]
         file: PathBuf,
@@ -31,19 +31,19 @@ enum Command {
     Listen {
         #[arg(long, short)]
         ip: String,
-        #[arg(long, short)]
+        #[arg(long, short, default_value_t = 8080)]
         port: u16,
     },
 
     AskQuit {
         #[arg(long, short)]
         ip: String,
-        #[arg(long, short)]
+        #[arg(long, short, default_value_t = 8080)]
         port: u16,
     },
 
     Scan {
-        #[arg(long, short)]
+        #[arg(long, short, default_value_t = 8080)]
         port: u16,
     },
 }

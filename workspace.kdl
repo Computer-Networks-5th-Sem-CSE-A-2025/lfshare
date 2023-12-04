@@ -50,7 +50,7 @@ layout {
             }
             pane start_suspended=true name="run send" {
                 command "cargo"
-                args "run" "--" "send" "-i" "127.0.0.1" "-p" "8080" "-f" "./src/main.rs"
+                args "run" "--" "send" "-i" "127.0.0.1" "-p" "8080" "-f" "./src/main.rs" "-d" "./received_files/main.rs"
             }
             pane start_suspended=true name="run listen" {
                 command "cargo"

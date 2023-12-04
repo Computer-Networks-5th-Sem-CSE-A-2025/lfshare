@@ -127,6 +127,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "af150ab688ff2122fcef229be89cb50dd66af9e01a4ff320cc137eecc9bacc38"
 
 [[package]]
+name = "lfshare"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "local-ip-address",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "libc"
 version = "0.2.150"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -173,17 +184,6 @@ dependencies = [
  "quote",
  "serde",
  "syn 1.0.109",
-]
-
-[[package]]
-name = "netroach"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "clap",
- "local-ip-address",
- "serde",
- "serde_json",
 ]
 
 [[package]]
